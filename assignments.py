@@ -20,7 +20,14 @@ router = APIRouter(
     tags=["Assignments & Workflow"]
 )
 
-@router.post("/", response_model=schemas.AssignmentResponse, status_code=201, dependencies=[Depends(RequirePrivilege('create:assignment'))])
+@router.get("/", response_model=List[schemas.AssignmentResponse], dependencies=[Depends(RequirePrivilege('view:dashboard'))])
+def get_assignments(db: Session = Depends(get_db)):
+    """
+    List all asset assignments.
+    """
+    return db.query(models.AssetAssignment).all()
+
+@router.post("/", response_model=schemas.AssignmentResponse, status_code=201, dependencies=[Depends(RequirePrivilege('manage:assignments'))])
 def assign_asset(assignment: schemas.AssignmentCreate, db: Session = Depends(get_db)):
     """
     Assign an available asset to an employee.

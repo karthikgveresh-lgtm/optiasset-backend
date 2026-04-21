@@ -19,6 +19,7 @@ app = FastAPI(
     title="AssetTracker Pro API",
     description="An industrial-grade asset management system API. Built for tracking company assets across 1000+ employees.",
     version="1.0.0",
+    redirect_slashes=False
 )
 
 # Enable CORS for deployment

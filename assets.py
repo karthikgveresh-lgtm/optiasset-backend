@@ -44,7 +44,7 @@ def get_asset(id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Asset not found")
     return asset
 
-@router.post("/", response_model=schemas.AssetResponse, status_code=201, dependencies=[Depends(RequirePrivilege('create:asset'))])
+@router.post("/", response_model=schemas.AssetResponse, status_code=201, dependencies=[Depends(RequirePrivilege('manage:assets'))])
 def create_asset(asset: schemas.AssetCreate, db: Session = Depends(get_db)):
     """
     Add a new asset to the system inventory.
@@ -70,7 +70,7 @@ def create_asset(asset: schemas.AssetCreate, db: Session = Depends(get_db)):
 
     return db_asset
 
-@router.put("/{id}", response_model=schemas.AssetResponse, dependencies=[Depends(RequirePrivilege('update:asset'))])
+@router.put("/{id}", response_model=schemas.AssetResponse, dependencies=[Depends(RequirePrivilege('manage:assets'))])
 def update_asset(id: int, asset_update: schemas.AssetUpdate, db: Session = Depends(get_db)):
     """
     Update an existing asset's details.

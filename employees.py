@@ -44,7 +44,7 @@ def get_employee(id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Employee not found")
     return employee
 
-@router.post("/", response_model=schemas.EmployeeResponse, status_code=201, dependencies=[Depends(RequirePrivilege('create:employee'))])
+@router.post("/", response_model=schemas.EmployeeResponse, status_code=201, dependencies=[Depends(RequirePrivilege('manage:users'))])
 def create_employee(employee: schemas.EmployeeCreate, db: Session = Depends(get_db)):
     """
     Add a new employee to the system.
@@ -72,7 +72,7 @@ def create_employee(employee: schemas.EmployeeCreate, db: Session = Depends(get_
 
     return db_employee
 
-@router.put("/{id}", response_model=schemas.EmployeeResponse, dependencies=[Depends(RequirePrivilege('update:employee'))])
+@router.put("/{id}", response_model=schemas.EmployeeResponse, dependencies=[Depends(RequirePrivilege('manage:users'))])
 def update_employee(id: int, employee_update: schemas.EmployeeUpdate, db: Session = Depends(get_db)):
     """
     Update an existing employee's details.
