@@ -1,0 +1,76 @@
+AssetTracker Pro - Atomic Feature List, API Mapping & Database Actions
+
+--- 1. Employee Management ---
+
+Feature: View all employees
+API Endpoint: GET /api/employees
+Database Action: SELECT all records from the `employees` table.
+
+Feature: View a specific employee's details
+API Endpoint: GET /api/employees/{id}
+Database Action: SELECT record from the `employees` table WHERE id = {id}.
+
+Feature: Add a new employee
+API Endpoint: POST /api/employees
+Database Action: INSERT a new row into the `employees` table (employee_code, first_name, last_name, email, department, role) AND INSERT a record into the `audit_logs` table.
+
+Feature: Update employee details
+API Endpoint: PUT /api/employees/{id}
+Database Action: UPDATE row in the `employees` table SET fields (department, role, etc.) WHERE id = {id} AND INSERT a record into the `audit_logs` table.
+
+Feature: Deactivate an employee
+API Endpoint: DELETE /api/employees/{id}
+Database Action: UPDATE row in the `employees` table SET is_active = false WHERE id = {id} AND INSERT a record into the `audit_logs` table.
+
+
+--- 2. Asset Management ---
+
+Feature: View all assets
+API Endpoint: GET /api/assets
+Database Action: SELECT all records from the `assets` table.
+
+Feature: View a specific asset's details
+API Endpoint: GET /api/assets/{id}
+Database Action: SELECT record from the `assets` table WHERE id = {id}.
+
+Feature: Add a new asset
+API Endpoint: POST /api/assets
+Database Action: INSERT a new row into the `assets` table (asset_tag, name, category, serial_number, purchase_date, status) AND INSERT a record into the `audit_logs` table.
+
+Feature: Update asset details
+API Endpoint: PUT /api/assets/{id}
+Database Action: UPDATE row in the `assets` table SET fields (name, category, status, etc.) WHERE id = {id} AND INSERT a record into the `audit_logs` table.
+
+Feature: Mark an asset as damaged/lost
+API Endpoint: PATCH /api/assets/{id}/status
+Database Action: UPDATE row in the `assets` table SET status = 'Lost' (or 'In Maintenance') WHERE id = {id} AND INSERT a record into the `audit_logs` table.
+
+
+--- 3. Assignments & Workflow ---
+
+Feature: Assign an asset to an employee
+API Endpoint: POST /api/assignments
+Database Action: INSERT a new row into the `asset_assignments` table (asset_id, employee_id, assigned_by_id, assignment_date, status='Active') AND UPDATE the `assets` table SET status = 'Assigned' WHERE id = {asset_id} AND INSERT a record into the `audit_logs` table.
+
+Feature: Return an assigned asset
+API Endpoint: PUT /api/assignments/{id}/return
+Database Action: UPDATE row in the `asset_assignments` table SET actual_return_date = CURRENT_DATE, status = 'Returned' WHERE id = {id} AND UPDATE the `assets` table SET status = 'Available' WHERE id = {asset_id} AND INSERT a record into the `audit_logs` table.
+
+Feature: View an employee's currently assigned assets (Personal Portal)
+API Endpoint: GET /api/employees/{id}/assignments
+Database Action: SELECT records from `asset_assignments` JOIN `assets` on asset_id WHERE employee_id = {id} AND asset_assignments.status = 'Active'.
+
+Feature: View assignment history for a specific asset
+API Endpoint: GET /api/assets/{id}/history
+Database Action: SELECT records from `asset_assignments` JOIN `employees` on employee_id WHERE asset_id = {id}.
+
+
+--- 4. Dashboard & Audit Logs ---
+
+Feature: View high-level asset statistics (Total, Assigned, Available)
+API Endpoint: GET /api/dashboard/stats
+Database Action: SELECT COUNT(*) from the `assets` table GROUP BY status.
+
+Feature: View recent system activity
+API Endpoint: GET /api/audit-logs
+Database Action: SELECT records from the `audit_logs` table ORDER BY created_at DESC LIMIT 50.

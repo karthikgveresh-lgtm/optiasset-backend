@@ -1,0 +1,34 @@
+Asset Management Software - Requirements & Features
+
+--- Client Understanding ---
+The client requires a simple and robust asset management software to track the allocation of company items (such as laptops, phones, software licenses, and office equipment) to specific employees. The primary goal is to maintain a clear record of "who has what" to ensure accountability, streamline onboarding/offboarding processes, and prevent loss of company property.
+
+--- Creative Freedoms Taken ---
+1. Product Name: "AssetTracker Pro" - A professional, straightforward name that clearly defines the software's purpose.
+2. Scope: Expanded the scope slightly beyond just hardware tracking to include software licenses and office keys.
+3. User Interface: Assumed a modern web-based dashboard interface for ease of access across devices without requiring local installation.
+4. User Roles: Introduced a basic role-based access control (RBAC) system with 'Admin' (IT/HR) and 'Employee' (Read-only view of their own assets).
+
+--- Assumptions Made ---
+1. Employees have unique identifiers (e.g., Employee ID or Company Email) for tracking purposes.
+2. Assets are uniquely identifiable via barcodes, serial numbers, or internal asset tags.
+3. The client currently uses a manual process (like Excel spreadsheets) which this software will replace.
+4. Cloud hosting is acceptable for this application, rather than an on-premise localized server.
+5. Basic reporting (e.g., list of all assets currently assigned vs. unassigned) is required.
+
+--- Feature List ---
+1. Dashboard Overview: A high-level summary showing total assets, assigned assets, unassigned assets, and recent activity.
+2. Asset Management Module: Add, edit, delete, and view details of individual assets (Name, Category, Serial Number, Purchase Date, Status).
+3. Employee Management Module: Add, edit, delete, and view employee profiles (Name, Department, Contact Info).
+4. Assignment & Returns Workflow: A streamlined interface to assign an available asset to an employee and to check-in an asset when returned.
+5. Activity History / Audit Log: A detailed log of all assignments, returns, and modifications for accountability.
+6. Personal Asset Portal: A view for employees to see what assets are currently assigned to them.
+7. Reporting: Exportable reports (CSV/PDF) of current asset allocations and inventory status.
+
+--- Questions for Next Client Meeting ---
+1. Do you need barcode or QR code scanning capabilities for checking assets in and out?
+2. Are there specific categories of assets you want to track, or should it be completely customizable?
+3. Do you need integration with your existing Active Directory or HR software for employee data?
+4. What happens when an asset is damaged or lost? Do you need a specific workflow for this?
+5. How many users will need administrative access to manage the system?
+6. Are there any specific compliance or security requirements we should be aware of?
