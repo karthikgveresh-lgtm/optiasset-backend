@@ -2,11 +2,12 @@
 Main Application Module
 """
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from database import engine, Base
-import employees, assets, assignments, dashboard
-from seed import seed_data # Import our seed function
+from sqlalchemy.orm import Session
+from database import engine, Base, get_db
+import employees, assets, assignments, dashboard, models
+from seed import seed_data
 
 # Create all database tables
 Base.metadata.create_all(bind=engine)
@@ -39,3 +40,8 @@ def read_root():
 def trigger_seed():
     seed_data()
     return {"message": "Database seeded successfully with dummy data!"}
+
+# DEBUG ENDPOINT
+@app.get("/api/debug/employees")
+def debug_employees(db: Session = Depends(get_db)):
+    return db.query(models.Employee).all()
