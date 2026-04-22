@@ -51,8 +51,8 @@ class AssetAssignment(Base):
     __tablename__ = "asset_assignments"
 
     id = Column(Integer, primary_key=True, index=True)
-    asset_id = Column(Integer, index=True, nullable=False) # Simple ID reference
-    employee_id = Column(Integer, index=True, nullable=False) # Simple ID reference
+    asset_id = Column(Integer, ForeignKey("assets.id"), index=True, nullable=False)
+    employee_id = Column(Integer, ForeignKey("employees.id"), index=True, nullable=False)
     assigned_by_id = Column(Integer, nullable=False)
     assignment_date = Column(Date, nullable=False)
     expected_return_date = Column(Date, nullable=True)
@@ -61,6 +61,10 @@ class AssetAssignment(Base):
     return_notes = Column(Text, nullable=True)
     status = Column(String(50), default="Active") # Active, Returned
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Add Relationships for nested data fetching
+    asset = relationship("Asset")
+    employee = relationship("Employee")
 
 class AuditLog(Base):
     __tablename__ = "audit_logs"

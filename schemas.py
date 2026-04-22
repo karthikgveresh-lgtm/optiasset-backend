@@ -55,6 +55,12 @@ class EmployeeResponse(EmployeeBase):
         orm_mode = True
         from_attributes = True
 
+class EmployeeSimple(BaseModel):
+    first_name: str
+    last_name: str
+    class Config:
+        from_attributes = True
+
 # --- Asset Schemas ---
 class AssetBase(BaseModel):
     asset_tag: str
@@ -87,6 +93,12 @@ class AssetResponse(AssetBase):
         orm_mode = True
         from_attributes = True
 
+class AssetSimple(BaseModel):
+    name: str
+    asset_tag: str
+    class Config:
+        from_attributes = True
+
 # --- Assignment Schemas ---
 class AssignmentCreate(BaseModel):
     asset_id: int
@@ -111,6 +123,10 @@ class AssignmentResponse(BaseModel):
     return_notes: Optional[str] = None
     status: str
     created_at: datetime
+    
+    # NESTED DATA for frontend display
+    asset: Optional[AssetSimple] = None
+    employee: Optional[EmployeeSimple] = None
 
     class Config:
         orm_mode = True
@@ -134,4 +150,4 @@ class DashboardStats(BaseModel):
     total_assets: int
     assigned_assets: int
     available_assets: int
-    lost_or_maintenance: int
+    maintenance_assets: int # Sync with frontend key
