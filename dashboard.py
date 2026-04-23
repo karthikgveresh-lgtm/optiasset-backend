@@ -1,5 +1,5 @@
 """
-Dashboard Router (Stability Upgrade)
+Dashboard Router (Final Connectivity Fix)
 """
 
 from fastapi import APIRouter, Depends
@@ -8,14 +8,13 @@ from typing import List
 import models
 import schemas
 from database import get_db
-from datetime import datetime
 
 router = APIRouter(
     prefix="/api/dashboard",
     tags=["Dashboard & Audit Logs"]
 )
 
-@router.get("/stats/", response_model=schemas.DashboardStats)
+@router.get("/stats", response_model=schemas.DashboardStats)
 def get_dashboard_stats(db: Session = Depends(get_db)):
     try:
         total = db.query(models.Asset).count()
@@ -32,11 +31,8 @@ def get_dashboard_stats(db: Session = Depends(get_db)):
     except Exception:
         return {"total_assets": 0, "assigned_assets": 0, "available_assets": 0, "maintenance_assets": 0}
 
-@router.get("/recent-assignments/")
+@router.get("/recent-assignments")
 def get_recent_assignments(db: Session = Depends(get_db)):
-    """
-    Fetch the 5 most recent asset assignments with enhanced error safety.
-    """
     try:
         results = (
             db.query(models.AssetAssignment)
@@ -47,13 +43,9 @@ def get_recent_assignments(db: Session = Depends(get_db)):
         
         formatted_data = []
         for item in results:
-            # Handle potential nulls or string dates gracefully
             date_str = "N/A"
             if item.assigned_date:
-                if isinstance(item.assigned_date, str):
-                    date_str = item.assigned_date[:10] # Just get YYYY-MM-DD
-                else:
-                    date_str = item.assigned_date.strftime("%Y-%m-%d")
+                date_str = str(item.assigned_date)[:10]
 
             formatted_data.append({
                 "id": item.id,
@@ -65,11 +57,25 @@ def get_recent_assignments(db: Session = Depends(get_db)):
             })
             
         return formatted_data
-    except Exception as e:
-        print(f"DEBUG ERROR: {str(e)}")
+    except Exception:
         return []
 
-@router.get("/audit-logs/", response_model=List[schemas.AuditLogResponse])
-def get_audit_logs(limit: int = 50, db: Session = Depends(get_db)):
-    logs = db.query(models.AuditLog).order_by(models.AuditLog.created_at.desc()).limit(limit).all()
-    return logs
+@router.get("/personal-assignments/{id}")
+def get_employee_assignments(id: int, db: Session = Depends(get_db)):
+    """
+    Fetch assignments for a specific employee.
+    """
+    try:
+        assignments = db.query(models.AssetAssignment).filter(
+            models.AssetAssignment.employee_id == id
+        ).all()
+        
+        return [{
+            "id": a.id,
+            "asset_name": a.asset.name if a.asset else "Unknown",
+            "asset_id": a.asset.asset_id if a.asset else "N/A",
+            "assigned_date": str(a.assigned_date)[:10] if a.assigned_date else "N/A",
+            "status": a.status
+        } for a in assignments]
+    except Exception:
+        return []
