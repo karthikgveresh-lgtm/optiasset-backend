@@ -1,5 +1,5 @@
 """
-Main Application Module
+Main Application Module (Signup Edition)
 """
 
 from fastapi import FastAPI, Depends, HTTPException, Body
@@ -20,7 +20,7 @@ with engine.connect() as conn:
 
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="AssetTracker Pro API", version="1.0.0")
+app = FastAPI(title="OptiAsset API", version="1.1.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -39,21 +39,45 @@ app.include_router(dashboard.router)
 def read_root():
     return {"status": "OptiAsset API is Online"}
 
+# --- AUTH ENDPOINTS ---
+
+@app.post("/api/auth/signup")
+def signup(data: dict = Body(...), db: Session = Depends(get_db)):
+    email = data.get("email")
+    password = data.get("password")
+    first_name = data.get("first_name")
+    last_name = data.get("last_name")
+    
+    # Check if user already exists
+    existing_user = db.query(models.Employee).filter(models.Employee.email == email).first()
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Account already exists with this email")
+    
+    # Create new Employee
+    new_user = models.Employee(
+        email=email,
+        password=password,
+        first_name=first_name,
+        last_name=last_name,
+        employee_code=f"EMP-{email.split('@')[0]}", # Auto-generate code
+        department="Unassigned",
+        is_active=True
+    )
+    
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    
+    return {"message": "Account created successfully!", "id": new_user.id}
+
 @app.post("/api/auth/login")
 def login(data: dict = Body(...), db: Session = Depends(get_db)):
     email = data.get("email")
     password = data.get("password")
     
-    print(f"🔍 Login Attempt: {email}") # DEBUG LOG
-    
     user = db.query(models.Employee).filter(models.Employee.email == email).first()
     
-    if not user:
-        print(f"❌ User not found: {email}")
-        raise HTTPException(status_code=401, detail="Invalid email or password")
-    
-    if user.password != password:
-        print(f"❌ Password mismatch for {email}. Expected '{user.password}', got '{password}'")
+    if not user or user.password != password:
         raise HTTPException(status_code=401, detail="Invalid email or password")
     
     role_name = "Employee"
@@ -62,7 +86,6 @@ def login(data: dict = Body(...), db: Session = Depends(get_db)):
     elif user.id == 1:
         role_name = "Admin"
         
-    print(f"✅ Login Success: {email} ({role_name})")
     return {
         "id": user.id,
         "first_name": user.first_name,
