@@ -1,9 +1,10 @@
 """
-Database Seeding Script (Super-Admin Version)
-Ensures YOU are the primary Admin in the system.
+Database Seeding Script (SQL Hammer Version)
+Uses direct SQL to ensure passwords are set correctly.
 """
 
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 from database import SessionLocal, engine, Base
 import models
 from datetime import date
@@ -29,58 +30,18 @@ def seed_data():
 
         db.commit()
 
-        # 2. Add YOU as the Super-Admin
-        me = db.query(models.Employee).filter(models.Employee.email == "karthikgveresh@gmail.com").first()
-        if not me:
-            me = models.Employee(
-                employee_code="ADMIN-001", 
-                first_name="Karthik", 
-                last_name="Veresh", 
-                email="karthikgveresh@gmail.com", 
-                password="password123", # Your new secure password
-                department="Management", 
-                role_id=admin_role.id
-            )
-            db.add(me)
-        else:
-            # Ensure the password is set correctly even if the user exists
-            me.password = "password123"
-            me.role_id = admin_role.id
-        
-        # 3. Add Jane (Employee)
-        jane = db.query(models.Employee).filter(models.Employee.employee_code == "EMP-002").first()
-        if not jane:
-            jane = models.Employee(
-                employee_code="EMP-002", 
-                first_name="Jane", 
-                last_name="Smith", 
-                email="jane@optiasset.com", 
-                password="password123",
-                department="Human Resources", 
-                role_id=emp_role.id
-            )
-            db.add(jane)
+        # 2. Force Add/Update YOU as the Super-Admin
+        # We use raw SQL to be 100% sure the column is written correctly
+        db.execute(text("""
+            INSERT OR REPLACE INTO employees (id, employee_code, first_name, last_name, email, password, department, role_id, is_active)
+            VALUES (1, 'ADMIN-001', 'Karthik', 'Veresh', 'karthikgveresh@gmail.com', 'password123', 'Management', :role_id, 1)
+        """), {"role_id": admin_role.id})
         
         db.commit()
-        db.refresh(me)
-
-        # 4. Add some sample gear for you
-        macbook = db.query(models.Asset).filter(models.Asset.asset_tag == "LAP-001").first()
-        if not macbook:
-            macbook = models.Asset(asset_tag="LAP-001", name="MacBook Pro 16\"", category="Laptop", status="Assigned")
-            db.add(macbook)
-            db.commit()
-            db.refresh(macbook)
-
-        asg = db.query(models.AssetAssignment).filter(models.AssetAssignment.employee_id == me.id).first()
-        if not asg:
-            db.add(models.AssetAssignment(asset_id=macbook.id, employee_id=me.id, assigned_by_id=me.id, assignment_date=date.today(), status="Active"))
-
-        db.commit()
-        print(f"✅ Success! Super-Admin {me.email} is ready.")
+        print("✅ SQL Hammer: Super-Admin karthikgveresh@gmail.com forced with password 'password123'")
 
     except Exception as e:
-        print(f"❌ Error during seeding: {e}")
+        print(f"❌ Error during SQL seed: {e}")
         db.rollback()
     finally:
         db.close()

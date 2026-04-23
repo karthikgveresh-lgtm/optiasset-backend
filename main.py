@@ -11,23 +11,16 @@ import employees, assets, assignments, dashboard, models, schemas
 from seed import seed_data
 
 # --- EMERGENCY DATABASE MIGRATION ---
-# This block ensures the 'password' column exists in the database
 with engine.connect() as conn:
     try:
         conn.execute(text("ALTER TABLE employees ADD COLUMN password TEXT DEFAULT 'password123'"))
         conn.commit()
-        print("✅ Migration Successful: Added 'password' column.")
     except Exception:
-        # If the column already exists, this will fail silently (which is fine)
-        print("ℹ️ Migration Skipped: Column might already exist.")
+        pass
 
-# Create all database tables (for any completely new tables)
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(
-    title="AssetTracker Pro API",
-    version="1.0.0",
-)
+app = FastAPI(title="AssetTracker Pro API", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -37,7 +30,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include routers
 app.include_router(employees.router)
 app.include_router(assets.router)
 app.include_router(assignments.router)
@@ -45,26 +37,32 @@ app.include_router(dashboard.router)
 
 @app.get("/")
 def read_root():
-    return {"status": "OptiAsset API is Online", "version": "1.0.0"}
+    return {"status": "OptiAsset API is Online"}
 
-# REAL LOGIN ENDPOINT
 @app.post("/api/auth/login")
 def login(data: dict = Body(...), db: Session = Depends(get_db)):
     email = data.get("email")
     password = data.get("password")
     
+    print(f"🔍 Login Attempt: {email}") # DEBUG LOG
+    
     user = db.query(models.Employee).filter(models.Employee.email == email).first()
     
-    if not user or user.password != password:
+    if not user:
+        print(f"❌ User not found: {email}")
         raise HTTPException(status_code=401, detail="Invalid email or password")
     
-    # Get role name
+    if user.password != password:
+        print(f"❌ Password mismatch for {email}. Expected '{user.password}', got '{password}'")
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+    
     role_name = "Employee"
     if user.role:
         role_name = user.role.name
-    elif user.id == 1: # Fallback for our first admin
+    elif user.id == 1:
         role_name = "Admin"
         
+    print(f"✅ Login Success: {email} ({role_name})")
     return {
         "id": user.id,
         "first_name": user.first_name,
@@ -76,8 +74,4 @@ def login(data: dict = Body(...), db: Session = Depends(get_db)):
 @app.get("/api/seed")
 def trigger_seed():
     seed_data()
-    return {"message": "Database seeded successfully with dummy data!"}
-
-@app.get("/api/debug/employees")
-def debug_employees(db: Session = Depends(get_db)):
-    return db.query(models.Employee).all()
+    return {"message": "Database seeded successfully!"}
