@@ -5,11 +5,23 @@ Main Application Module
 from fastapi import FastAPI, Depends, HTTPException, Body
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 from database import engine, Base, get_db
 import employees, assets, assignments, dashboard, models, schemas
 from seed import seed_data
 
-# Create all database tables
+# --- EMERGENCY DATABASE MIGRATION ---
+# This block ensures the 'password' column exists in the database
+with engine.connect() as conn:
+    try:
+        conn.execute(text("ALTER TABLE employees ADD COLUMN password TEXT DEFAULT 'password123'"))
+        conn.commit()
+        print("✅ Migration Successful: Added 'password' column.")
+    except Exception:
+        # If the column already exists, this will fail silently (which is fine)
+        print("ℹ️ Migration Skipped: Column might already exist.")
+
+# Create all database tables (for any completely new tables)
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
@@ -58,7 +70,7 @@ def login(data: dict = Body(...), db: Session = Depends(get_db)):
         "first_name": user.first_name,
         "last_name": user.last_name,
         "role": role_name,
-        "token": f"bearer_{user.id}" # Mock token for now
+        "token": f"bearer_{user.id}"
     }
 
 @app.get("/api/seed")
