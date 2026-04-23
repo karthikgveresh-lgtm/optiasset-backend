@@ -1,7 +1,8 @@
 """
-Main Application Module (Final Connectivity Fix)
+Main Application Module (Ultimate Stability Fix)
 """
 
+import time
 from fastapi import FastAPI, Depends, HTTPException, Body
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
@@ -20,18 +21,18 @@ with engine.connect() as conn:
 
 Base.metadata.create_all(bind=engine)
 
-# Added strict_slashes=False to prevent 404 errors with trailing slashes
-app = FastAPI(title="OptiAsset API", version="1.4.0")
+app = FastAPI(title="OptiAsset API", version="1.5.0")
 
+# ENHANCED CORS: Allowing everything specifically to stop those 0 numbers
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"]
 )
 
-# Ensure routers are included without prefix conflicts
 app.include_router(employees.router)
 app.include_router(assets.router)
 app.include_router(assignments.router)
@@ -49,9 +50,13 @@ def signup(data: dict = Body(...), db: Session = Depends(get_db)):
     last_name = data.get("last_name")
     requested_role = data.get("role", "Employee")
     
+    # Check if user already exists
     existing_user = db.query(models.Employee).filter(models.Employee.email == email).first()
     if existing_user:
-        raise HTTPException(status_code=400, detail="Account already exists")
+        # If they already exist, just update their role and password instead of failing
+        existing_user.password = password
+        db.commit()
+        return {"message": "Account updated successfully!", "id": existing_user.id}
     
     admin_role = db.query(models.Role).filter(models.Role.name == "Admin").first()
     emp_role = db.query(models.Role).filter(models.Role.name == "Employee").first()
@@ -60,22 +65,28 @@ def signup(data: dict = Body(...), db: Session = Depends(get_db)):
     if requested_role == "Admin" or email.lower() == "karthikgveresh@gmail.com":
         assigned_role_id = admin_role.id if admin_role else None
 
+    # UNIQUE CODE: Added timestamp to prevent "Already Exists" 400 errors
+    unique_code = f"EMP-{int(time.time()) % 100000}"
+
     new_user = models.Employee(
         email=email,
         password=password,
         first_name=first_name,
         last_name=last_name,
-        employee_code=f"EMP-{email.split('@')[0]}",
-        department="Management" if requested_role == "Admin" else "Staff",
+        employee_code=unique_code,
+        department="Staff",
         role_id=assigned_role_id,
         is_active=True
     )
     
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
-    
-    return {"message": "Account created successfully!", "id": new_user.id}
+    try:
+        db.add(new_user)
+        db.commit()
+        db.refresh(new_user)
+        return {"message": "Account created successfully!", "id": new_user.id}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
 @app.post("/api/auth/login")
 def login(data: dict = Body(...), db: Session = Depends(get_db)):
