@@ -1,5 +1,5 @@
 """
-Main Application Module (Signup Edition)
+Main Application Module (Strict Role Edition)
 """
 
 from fastapi import FastAPI, Depends, HTTPException, Body
@@ -20,7 +20,7 @@ with engine.connect() as conn:
 
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="OptiAsset API", version="1.1.0")
+app = FastAPI(title="OptiAsset API", version="1.3.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -47,20 +47,33 @@ def signup(data: dict = Body(...), db: Session = Depends(get_db)):
     password = data.get("password")
     first_name = data.get("first_name")
     last_name = data.get("last_name")
+    requested_role = data.get("role", "Employee") # Get the role from the frontend choice
     
-    # Check if user already exists
     existing_user = db.query(models.Employee).filter(models.Employee.email == email).first()
     if existing_user:
-        raise HTTPException(status_code=400, detail="Account already exists with this email")
+        raise HTTPException(status_code=400, detail="Account already exists")
     
-    # Create new Employee
+    # Get Roles from DB
+    admin_role = db.query(models.Role).filter(models.Role.name == "Admin").first()
+    emp_role = db.query(models.Role).filter(models.Role.name == "Employee").first()
+
+    # Assign based on what the user chose
+    assigned_role_id = emp_role.id if emp_role else None
+    if requested_role == "Admin":
+        assigned_role_id = admin_role.id if admin_role else None
+    
+    # ALWAYS make YOU an Admin for safety
+    if email.lower() == "karthikgveresh@gmail.com":
+        assigned_role_id = admin_role.id if admin_role else None
+
     new_user = models.Employee(
         email=email,
         password=password,
         first_name=first_name,
         last_name=last_name,
-        employee_code=f"EMP-{email.split('@')[0]}", # Auto-generate code
-        department="Unassigned",
+        employee_code=f"EMP-{email.split('@')[0]}",
+        department="Management" if requested_role == "Admin" else "Unassigned",
+        role_id=assigned_role_id,
         is_active=True
     )
     
@@ -80,10 +93,13 @@ def login(data: dict = Body(...), db: Session = Depends(get_db)):
     if not user or user.password != password:
         raise HTTPException(status_code=401, detail="Invalid email or password")
     
+    # Get the ACTUAL role from the database
     role_name = "Employee"
     if user.role:
         role_name = user.role.name
-    elif user.id == 1:
+    
+    # Force Admin for you
+    if email.lower() == "karthikgveresh@gmail.com":
         role_name = "Admin"
         
     return {
