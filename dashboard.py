@@ -1,5 +1,5 @@
 """
-Dashboard Router (Final Connectivity Fix)
+Dashboard Router (Email-Aware Assignments Fix)
 """
 
 from fastapi import APIRouter, Depends
@@ -14,7 +14,7 @@ router = APIRouter(
     tags=["Dashboard & Audit Logs"]
 )
 
-@router.get("/stats", response_model=schemas.DashboardStats)
+@router.get("/stats")
 def get_dashboard_stats(db: Session = Depends(get_db)):
     try:
         total = db.query(models.Asset).count()
@@ -60,22 +60,35 @@ def get_recent_assignments(db: Session = Depends(get_db)):
     except Exception:
         return []
 
-@router.get("/personal-assignments/{id}")
-def get_employee_assignments(id: int, db: Session = Depends(get_db)):
+@router.get("/personal-assignments/{id_or_email}")
+def get_employee_assignments(id_or_email: str, db: Session = Depends(get_db)):
     """
-    Fetch assignments for a specific employee.
+    Fetch assignments for a specific employee by ID OR Email (Safety Fallback).
     """
     try:
+        # 1. Try to find the employee by ID or Email
+        employee = None
+        if id_or_email.isdigit():
+            employee = db.query(models.Employee).filter(models.Employee.id == int(id_or_email)).first()
+        
+        if not employee:
+            employee = db.query(models.Employee).filter(models.Employee.email == id_or_email).first()
+
+        if not employee:
+            return []
+
+        # 2. Get assignments for this specific employee record
         assignments = db.query(models.AssetAssignment).filter(
-            models.AssetAssignment.employee_id == id
+            models.AssetAssignment.employee_id == employee.id
         ).all()
         
         return [{
             "id": a.id,
-            "asset_name": a.asset.name if a.asset else "Unknown",
+            "asset_name": a.asset.name if a.asset else "Unknown Device",
             "asset_id": a.asset.asset_id if a.asset else "N/A",
             "assigned_date": str(a.assigned_date)[:10] if a.assigned_date else "N/A",
-            "status": a.status
+            "status": a.status or "Active"
         } for a in assignments]
-    except Exception:
+    except Exception as e:
+        print(f"DEBUG: {str(e)}")
         return []
