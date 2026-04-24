@@ -1,5 +1,5 @@
 """
-Main Application Module (Ultimate Stability Fix)
+Main Application Module (Department Choice Edition)
 """
 
 import time
@@ -21,9 +21,8 @@ with engine.connect() as conn:
 
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="OptiAsset API", version="1.5.0")
+app = FastAPI(title="OptiAsset API", version="1.6.0")
 
-# ENHANCED CORS: Allowing everything specifically to stop those 0 numbers
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -48,13 +47,13 @@ def signup(data: dict = Body(...), db: Session = Depends(get_db)):
     password = data.get("password")
     first_name = data.get("first_name")
     last_name = data.get("last_name")
+    department = data.get("department", "Staff") # GET DEPARTMENT FROM FRONTEND
     requested_role = data.get("role", "Employee")
     
-    # Check if user already exists
     existing_user = db.query(models.Employee).filter(models.Employee.email == email).first()
     if existing_user:
-        # If they already exist, just update their role and password instead of failing
         existing_user.password = password
+        existing_user.department = department # Update department if they re-signup
         db.commit()
         return {"message": "Account updated successfully!", "id": existing_user.id}
     
@@ -65,7 +64,6 @@ def signup(data: dict = Body(...), db: Session = Depends(get_db)):
     if requested_role == "Admin" or email.lower() == "karthikgveresh@gmail.com":
         assigned_role_id = admin_role.id if admin_role else None
 
-    # UNIQUE CODE: Added timestamp to prevent "Already Exists" 400 errors
     unique_code = f"EMP-{int(time.time()) % 100000}"
 
     new_user = models.Employee(
@@ -74,7 +72,7 @@ def signup(data: dict = Body(...), db: Session = Depends(get_db)):
         first_name=first_name,
         last_name=last_name,
         employee_code=unique_code,
-        department="Staff",
+        department=department, # SAVE THE CHOSEN DEPARTMENT
         role_id=assigned_role_id,
         is_active=True
     )
