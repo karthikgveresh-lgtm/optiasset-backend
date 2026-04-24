@@ -1,10 +1,12 @@
 """
-Main Application Module (Department Choice Edition)
+Main Application Module (Network Hardening Edition)
 """
 
 import time
 from fastapi import FastAPI, Depends, HTTPException, Body
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from database import engine, Base, get_db
@@ -21,7 +23,22 @@ with engine.connect() as conn:
 
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="OptiAsset API", version="1.6.0")
+# MASTER FIX: This middleware forces FastAPI to realize it is behind an HTTPS proxy (Railway)
+class ForceHTTPSMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        if request.headers.get("x-forwarded-proto") == "https":
+            request.scope["scheme"] = "https"
+        response = await call_next(request)
+        return response
+
+app = FastAPI(
+    title="OptiAsset API", 
+    version="1.7.0",
+    # Disable strict slashes globally to stop the redirect loops
+    redirect_slashes=False 
+)
+
+app.add_middleware(ForceHTTPSMiddleware)
 
 app.add_middleware(
     CORSMiddleware,
@@ -29,7 +46,6 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-    expose_headers=["*"]
 )
 
 app.include_router(employees.router)
@@ -47,13 +63,13 @@ def signup(data: dict = Body(...), db: Session = Depends(get_db)):
     password = data.get("password")
     first_name = data.get("first_name")
     last_name = data.get("last_name")
-    department = data.get("department", "Staff") # GET DEPARTMENT FROM FRONTEND
+    department = data.get("department", "Staff")
     requested_role = data.get("role", "Employee")
     
     existing_user = db.query(models.Employee).filter(models.Employee.email == email).first()
     if existing_user:
         existing_user.password = password
-        existing_user.department = department # Update department if they re-signup
+        existing_user.department = department
         db.commit()
         return {"message": "Account updated successfully!", "id": existing_user.id}
     
@@ -72,7 +88,7 @@ def signup(data: dict = Body(...), db: Session = Depends(get_db)):
         first_name=first_name,
         last_name=last_name,
         employee_code=unique_code,
-        department=department, # SAVE THE CHOSEN DEPARTMENT
+        department=department,
         role_id=assigned_role_id,
         is_active=True
     )
